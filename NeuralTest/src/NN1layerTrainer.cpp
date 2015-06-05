@@ -7,6 +7,7 @@
 
 #include "NN1layerTrainer.h"
 #include <iostream>
+#include <cmath>
 
 using namespace std;
 
