@@ -50,7 +50,8 @@ void NN1layerTrainer::train() {
 	double changeFraction = changeThreshold + 1.0; // something larger than threshold.
 	double rms = 0.0; // for RMSProp.
 	double rmsWindowFactor = 0.9;
-	double momentum = 0.1; // momentum parameter
+	bool useMomentum = false;
+	double momentum = 0.9; // momentum parameter
 	int numEpochs = 0;
 	double ** dihw = new double*[nn->iSize + 1];
 	f(i, nn->iSize + 1) {
@@ -59,6 +60,19 @@ void NN1layerTrainer::train() {
 	double ** dhow = new double*[nn->hSize + 1];
 	f(j, nn->hSize + 1) {
 		dhow[j] = new double[nn->oSize];
+	}
+	double ** dihwRunning;
+	double ** dhowRunning;
+	if (useMomentum) {
+		learnRate /= (1 - momentum);
+		dihwRunning = new double*[nn->iSize + 1];
+		f(i, nn->iSize + 1) {
+			dihwRunning[i] = new double[nn->hSize];
+		}
+		dhowRunning = new double*[nn->hSize + 1];
+		f(j, nn->hSize + 1) {
+			dhowRunning[j] = new double[nn->oSize];
+		}
 	}
 	double * input = new double[nn->iSize + 1];
 	double * hidden = new double[nn->hSize + 1];
@@ -98,6 +112,7 @@ void NN1layerTrainer::train() {
 		// Regurilzation commented out because its not improving test case performance.
 		//error += regularize(lambda, nn->ihw, nn->how, dihw, dhow, nn->iSize, nn->hSize, nn->oSize);
 
+		
 		// rmsprop part
 		rms *= rmsWindowFactor;
 		f(i, nn->iSize + 1) {
@@ -121,9 +136,24 @@ void NN1layerTrainer::train() {
 				nn->how[j][k] -= learnRate * dhow[j][k] / ((1 - rmsWindowFactor) * sqrt(rms));
 			}
 		}
-
-		/* 
+		
+		 
+		/*
 		// non-rmsprop
+		if (useMomentum) {
+			f(i, nn->iSize + 1) {
+				f(j, nn->hSize) {
+					dihwRunning[i][j] = momentum * dihwRunning[i][j] + (1 - momentum) * dihw[i][j];
+				}
+			}
+			f(j, nn->hSize + 1) {
+				f(k, nn->oSize) {
+					dhowRunning[j][k] = momentum * dhowRunning[j][k] + (1 - momentum) * dhow[j][k];
+				}
+			}
+			
+		}
+
 		f(i, nn->iSize + 1) {
 			f(j, nn->hSize) {
 				nn->ihw[i][j] -= dihw[i][j];
@@ -134,7 +164,6 @@ void NN1layerTrainer::train() {
 				nn->how[j][k] -= dhow[j][k];
 			}
 		}
-
 		*/
 
 		if (de->getEpochs() > numEpochs) {

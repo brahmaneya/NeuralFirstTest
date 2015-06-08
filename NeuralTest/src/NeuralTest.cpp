@@ -20,7 +20,7 @@ int main() {
 	int maxEpochs = 100;
 	double changeThreshold = -0.001;
 	double trainFraction = 0.8;
-	double learnRate = 0.002;
+	double learnRate = 0.02;
 	int iSize = 16;
 	int hSize = 20;
 	int oSize = 26;
