@@ -91,8 +91,8 @@ void NN1layer::forward(double input[], double hidden[], double output[]) {
 			output[k] += hidden[j] * how[j][k];
 		}
 		output[k] += how[hSize][k]; // Bias term
-		output[k] = activationFunction(-output[k]);
 	}
+	softMaxFunction(output, oSize);
 }
 
 /**
@@ -101,7 +101,7 @@ void NN1layer::forward(double input[], double hidden[], double output[]) {
 void NN1layer::backProp(double input[], double hidden[], double output[], double dOutput[], double ** dihw, double ** dhow, double learnRate) {
 	double* dOut = new double[oSize];
 	f(k, oSize) {
-		dOut[k] = dOutput[k] * activationDerivativeFunction(output[k]);
+		dOut[k] = -dOutput[k];
 	}
 	double* dHidden = new double[hSize];
 	double* dHid = new double[hSize];
@@ -127,6 +127,17 @@ void NN1layer::backProp(double input[], double hidden[], double output[], double
 	delete[] dOut;
 	delete[] dHidden;
 	delete[] dHid;
+}
+
+void NN1layer::softMaxFunction(double output[], int size) {
+	double normalize = 0.0;
+	f(k, size) {
+		normalize += exp(output[k]);
+	}
+	f(k, size) {
+		output[k] = exp(output[k]) / normalize;
+	}
+	return;
 }
 
 inline double NN1layer::activationFunction(double x) {

@@ -24,6 +24,7 @@ public:
 	void initWeights();
 	void forward(double input[], double hidden[], double output[]);
 	void backProp(double input[], double hidden[], double output[], double dOutput[], double ** dihw, double ** dhow, double learnRate);
+	void softMaxFunction(double output[], int size);
 	inline double activationFunction(double x);
 	inline double activationDerivativeFunction(double x);
 	void save(string fileName);

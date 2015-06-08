@@ -27,7 +27,7 @@ inline double correctOutput (int i, int output) {
 }
 
 void NN1layerTrainer::train() {
-	double lastError = de->trainingTuples.size() * nn->oSize;
+	double lastError = de->trainingTuples.size() * nn->oSize; // Should be infinity
 	double error = 0.0;
 	double changeFraction = changeThreshold + 1.0; // something larger than threshold.
 	int numEpochs = 0;
@@ -70,8 +70,8 @@ void NN1layerTrainer::train() {
 			nn->forward(input, hidden, output);
 			f (k, nn->oSize) {
 				dOutput[k] = correctOutput(k, entry.output) - output[k];
-				error += abs(dOutput[k]);
 			}
+			error += -log(output[entry.output]);
 			nn->backProp(input, hidden, output, dOutput, dihw, dhow, learnRate);
 		}
 		f(i, nn->iSize) {
@@ -88,7 +88,7 @@ void NN1layerTrainer::train() {
 		if (de->getEpochs() > numEpochs) {
 			numEpochs++;
 			changeFraction = abs((lastError - error) / error);
-			cout << numEpochs << " " << error << endl;
+			cout << numEpochs << " " << error / de->trainingTuples.size() << endl;
 			lastError = error;
 			error = 0.0;
 		}
@@ -124,10 +124,9 @@ int maxOut (double output[], int size) {
 	return moi;
 }
 
+
 double NN1layerTrainer::test() {
-	double errorBinary = 0.0;
-	double errorSquare = 0.0;
-	double errorClassification = 0.0;
+	double crossEntropyError = 0.0;
 	double * input = new double[nn->iSize];
 	double * hidden = new double[nn->hSize];
 	double * output = new double[nn->oSize];
@@ -145,19 +144,13 @@ double NN1layerTrainer::test() {
 			output[k] = 0.0;
 		}
 		nn->forward(input, hidden, output);
-		f (k, nn->oSize) {
-			errorBinary += abs(correctOutput(k, entry.output) - clamp(output[k]));
-			errorSquare += pow(correctOutput(k, entry.output) - output[k], 2);
-		}
-		errorClassification += abs(1 - correctOutput(maxOut(output, nn->oSize), entry.output));
+		crossEntropyError += -log(output[entry.output]);
 	}
 	delete[] input;
 	delete[] hidden;
 	delete[] output;
-	cout << (errorBinary / (de->testTuples.size() * nn->oSize)) << "\t" <<
-			(errorClassification / de->testTuples.size()) << "\t" <<
-			(errorSquare / (de->testTuples.size() * nn->oSize)) << endl;
-	return errorBinary;
+	cout <<	(crossEntropyError / de->testTuples.size()) << endl; 
+	return crossEntropyError;
 }
 
 NN1layerTrainer::~NN1layerTrainer() {}
