@@ -114,7 +114,7 @@ double clamp (double output) {
 
 int maxOut (double output[], int size) {
 	int moi = -1;
-	int mo = 0.0;
+	double mo = 0.0;
 	f(k, size) {
 		if (output[k] > mo) {
 			mo = output[k];
@@ -127,6 +127,7 @@ int maxOut (double output[], int size) {
 
 double NN1layerTrainer::test() {
 	double crossEntropyError = 0.0;
+	double errorClassification = 0.0;
 	double * input = new double[nn->iSize];
 	double * hidden = new double[nn->hSize];
 	double * output = new double[nn->oSize];
@@ -144,13 +145,15 @@ double NN1layerTrainer::test() {
 			output[k] = 0.0;
 		}
 		nn->forward(input, hidden, output);
+		errorClassification += abs(1 - correctOutput(maxOut(output, nn->oSize), entry.output));
 		crossEntropyError += -log(output[entry.output]);
 	}
 	delete[] input;
 	delete[] hidden;
 	delete[] output;
-	cout <<	(crossEntropyError / de->testTuples.size()) << endl; 
-	return crossEntropyError;
+	cout <<	(errorClassification / de->testTuples.size()) << "\t" <<
+			(crossEntropyError / de->testTuples.size()) << endl;
+	return errorClassification;
 }
 
 NN1layerTrainer::~NN1layerTrainer() {}

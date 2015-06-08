@@ -26,12 +26,12 @@ int main() {
 	string dataFile = "data/letter-recognition.data";
 	string saveFile = "nn_16_20_26";
 	DataExtractor *de = new DataExtractor(dataFile, oSize, trainFraction);
-	NN1layer *nn = new NN1layer(16, 20, 26);
-	//NN1layer *nn = new NN1layer(saveFile);
+	//NN1layer *nn = new NN1layer(16, 20, 26);
+	NN1layer *nn = new NN1layer(saveFile);
 	NN1layerTrainer nnTrainer(nn, de);
 	nnTrainer.setTrainingParams(batchSize, changeThreshold, maxEpochs, learnRate);
-	nnTrainer.train();
-	nn->save(saveFile);
+	//nnTrainer.train();
+	//nn->save(saveFile);
 	nnTrainer.test();
 	return 0;
 }
