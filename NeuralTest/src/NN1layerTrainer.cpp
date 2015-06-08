@@ -13,12 +13,13 @@ using namespace std;
 
 #define f(i,n) for (int i = 0; i < n; i++)
 
-NN1layerTrainer::NN1layerTrainer(NN1layer* nn1, DataExtractor* de1) : batchSize(BATCH_SIZE), maxEpochs(MAX_EPOCHS), changeThreshold(CHANGE_THRESHOLD), learnRate(LEARN_RATE), nn(nn1), de(de1) {}
+NN1layerTrainer::NN1layerTrainer(NN1layer* nn1, DataExtractor* de1) : batchSize(BATCH_SIZE), maxEpochs(MAX_EPOCHS), changeThreshold(CHANGE_THRESHOLD), lambda(LAMBDA), learnRate(LEARN_RATE), nn(nn1), de(de1) {}
 
-void NN1layerTrainer::setTrainingParams(int batchSize, double changeThreshold, int maxEpochs, double learnRate) {
+void NN1layerTrainer::setTrainingParams(int batchSize, double changeThreshold, int maxEpochs, double lambda, double learnRate) {
 	this->batchSize = batchSize;
 	this->changeThreshold = changeThreshold;
 	this->maxEpochs = maxEpochs;
+	this->lambda = lambda;
 	this->learnRate = learnRate;
 }
 
@@ -26,10 +27,30 @@ inline double correctOutput (int i, int output) {
 	return i == output ? 1.0 : 0.0;
 }
 
+double regularize(double lambda, double ** ihw, double ** how, double ** dihw, double ** dhow, int iSize, int hSize, int oSize) {
+	double error = 0;
+	f(i, iSize) {
+		f(j, hSize) {
+			dihw[i][j] += ihw[i][j] * lambda;
+			error += ihw[i][j] * ihw[i][j];
+		}
+	}
+	f(j, hSize) {
+		f(k, oSize) {
+			dhow[j][k] += how[j][k] * lambda;
+			error += how[j][k] * how[j][k];
+		}
+	}
+	return 0.5 * lambda * error;
+}
+
 void NN1layerTrainer::train() {
 	double lastError = de->trainingTuples.size() * nn->oSize; // Should be infinity
 	double error = 0.0;
 	double changeFraction = changeThreshold + 1.0; // something larger than threshold.
+	double rms = 0.0; // for RMSProp.
+	double rmsWindowFactor = 0.9;
+	double momentum = 0.1; // momentum parameter
 	int numEpochs = 0;
 	double ** dihw = new double*[nn->iSize + 1];
 	f(i, nn->iSize + 1) {
@@ -69,26 +90,60 @@ void NN1layerTrainer::train() {
 			}
 			nn->forward(input, hidden, output);
 			f (k, nn->oSize) {
-				dOutput[k] = correctOutput(k, entry.output) - output[k];
+				dOutput[k] = output[k] - correctOutput(k, entry.output);
 			}
 			error += -log(output[entry.output]);
 			nn->backProp(input, hidden, output, dOutput, dihw, dhow, learnRate);
 		}
-		f(i, nn->iSize) {
+		// Regurilzation commented out because its not improving test case performance.
+		//error += regularize(lambda, nn->ihw, nn->how, dihw, dhow, nn->iSize, nn->hSize, nn->oSize);
+
+		// rmsprop part
+		rms *= rmsWindowFactor;
+		f(i, nn->iSize + 1) {
+			f(j, nn->hSize) {
+				rms += (1 - rmsWindowFactor) * dihw[i][j] * dihw[i][j];
+			}
+		}
+		f(j, nn->hSize + 1) {
+			f(k, nn->oSize) {
+				rms += (1 - rmsWindowFactor) * dhow[j][k] * dhow[j][k];
+			}
+		}
+
+		f(i, nn->iSize + 1) {
+			f(j, nn->hSize) {
+				nn->ihw[i][j] -= learnRate * dihw[i][j] / ((1 - rmsWindowFactor) * sqrt(rms));
+			}
+		}
+		f(j, nn->hSize + 1) {
+			f(k, nn->oSize) {
+				nn->how[j][k] -= learnRate * dhow[j][k] / ((1 - rmsWindowFactor) * sqrt(rms));
+			}
+		}
+
+		/* 
+		// non-rmsprop
+		f(i, nn->iSize + 1) {
 			f(j, nn->hSize) {
 				nn->ihw[i][j] -= dihw[i][j];
 			}
 		}
-		f(j, nn->hSize) {
+		f(j, nn->hSize + 1) {
 			f(k, nn->oSize) {
 				nn->how[j][k] -= dhow[j][k];
 			}
 		}
 
+		*/
+
 		if (de->getEpochs() > numEpochs) {
 			numEpochs++;
 			changeFraction = abs((lastError - error) / error);
 			cout << numEpochs << " " << error / de->trainingTuples.size() << endl;
+			if (lastError < error) {
+				learnRate /= 2;
+			}
 			lastError = error;
 			error = 0.0;
 		}

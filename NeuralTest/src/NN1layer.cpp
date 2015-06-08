@@ -101,7 +101,7 @@ void NN1layer::forward(double input[], double hidden[], double output[]) {
 void NN1layer::backProp(double input[], double hidden[], double output[], double dOutput[], double ** dihw, double ** dhow, double learnRate) {
 	double* dOut = new double[oSize];
 	f(k, oSize) {
-		dOut[k] = -dOutput[k];
+		dOut[k] = dOutput[k];
 	}
 	double* dHidden = new double[hSize];
 	double* dHid = new double[hSize];

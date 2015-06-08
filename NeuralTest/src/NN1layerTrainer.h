@@ -12,11 +12,13 @@
 
 #define MAX_EPOCHS 2000
 #define LEARN_RATE 0.001
+#define LAMBDA 0.000001
 #define CHANGE_THRESHOLD 0.01
 #define BATCH_SIZE 10
 
 class NN1layerTrainer {
 private:
+	double lambda;
 	int batchSize;
 	double changeThreshold;
 	int maxEpochs;
@@ -26,7 +28,7 @@ private:
 
 public:
 	NN1layerTrainer(NN1layer* nn1, DataExtractor* de1);
-	void setTrainingParams(int batchSize, double changeThreshold, int maxEpochs, double learnRate);
+	void setTrainingParams(int batchSize, double changeThreshold, int maxEpochs, double lambda, double learnRate);
 	void train();
 	double test();
 	virtual ~NN1layerTrainer();

@@ -10,6 +10,7 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
 #define f(i,n) for(int i = 0; i < n; i++)
@@ -45,6 +46,38 @@ DataExtractor::DataExtractor(string inputFile, int numOutputs, double trainFract
 	fin.close();
 	random_shuffle(trainingTuples.begin(), trainingTuples.end());
 	random_shuffle(testTuples.begin(), testTuples.end());
+	normalize();
+}
+
+void DataExtractor::normalize() {
+	const int numTuples = trainingTuples.size();
+	const int size = trainingTuples.at(0).input.size();
+	f(i,size) {
+		means.push_back(0.0);
+		deviations.push_back(0.0);
+	}
+	f(j,numTuples) {
+		f(i,size) {
+			means[i] += trainingTuples.at(j).input.at(i);
+			deviations[i] += trainingTuples.at(j).input.at(i) * trainingTuples.at(j).input.at(i);
+		}
+	}
+	f(i,size) {
+		means[i] /= numTuples;
+		deviations[i] /= numTuples;
+		deviations[i] -= means[i] * means[i];
+		deviations[i] = sqrt(deviations[i]);
+	}
+	f(j,numTuples) {
+		f(i,size) {
+			trainingTuples.at(j).input[i] = (trainingTuples.at(j).input[i] - means[i]) / deviations[i];
+		}
+	}
+	f(j,testTuples.size()) {
+		f(i,size) {
+			testTuples.at(j).input[i] = (testTuples.at(j).input[i] - means[i]) / deviations[i];
+		}
+	}
 }
 
 vector<DataEntry> DataExtractor::generateBatch (int batchSize) {
